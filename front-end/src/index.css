@@ -1,5 +1,102 @@
+:root {
+  --brand-primary: #0d6efd;
+  --brand-primary-dark: #0a58ca;
+  --brand-primary-darker: #084298;
+  --brand-surface: #f4f7fc;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
-  background-color: #f8f9fa;
+  background-color: var(--brand-surface);
+}
+
+/* ---------- Auth pages (login / register) ---------- */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 50%, var(--brand-primary-darker) 100%);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 920px;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #fff;
+}
+
+.auth-brand-panel {
+  background: linear-gradient(160deg, var(--brand-primary) 0%, var(--brand-primary-darker) 100%);
+  color: #fff;
+  min-height: 100%;
+}
+
+.auth-brand-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.auth-form-panel {
+  padding: 2.5rem;
+}
+
+@media (max-width: 991.98px) {
+  .auth-form-panel {
+    padding: 2rem 1.5rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .auth-page {
+    padding: 0.75rem;
+  }
+}
+
+/* ---------- Shared navbar ---------- */
+
+.navbar-brand-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+}
+
+/* ---------- Dashboards ---------- */
+
+.dashboard-hero {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-darker) 100%);
+  color: #fff;
+  border-radius: 1rem;
+  padding: 1.75rem 2rem;
+}
+
+@media (max-width: 575.98px) {
+  .dashboard-hero {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+.stat-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

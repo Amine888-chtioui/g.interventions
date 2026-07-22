@@ -5,6 +5,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/AdminDashboard';
 import TechnicienDashboard from './pages/TechnicienDashboard';
+import UserManagement from './pages/UserManagement';
+import InterventionManagement from './pages/InterventionManagement';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -25,6 +27,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRole="ADMIN">
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/utilisateurs"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/interventions"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <InterventionManagement />
               </ProtectedRoute>
             }
           />
