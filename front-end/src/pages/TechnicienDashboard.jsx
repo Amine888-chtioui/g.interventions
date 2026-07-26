@@ -1,8 +1,22 @@
-import { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
+import { useEffect, useMemo, useState } from 'react';
+import { FiTool, FiClock, FiCheckCircle } from 'react-icons/fi';
+import DashboardShell from '../components/DashboardShell';
+import NotificationBell from '../components/NotificationBell';
 import { useAuth } from '../context/AuthContext';
-import { STATUTS, statutLabel, statutColor } from '../constants/statut';
+import { STATUTS, statutLabel, statutStyle } from '../constants/statut';
 import { getMyInterventions, updateInterventionStatut } from '../api/interventionApi';
+
+function KpiCard({ icon: Icon, label, value, tone }) {
+  return (
+    <div className="dash-kpi">
+      <div className={`ico tone-${tone}`}>
+        <Icon />
+      </div>
+      <div className="val">{value}</div>
+      <div className="lbl">{label}</div>
+    </div>
+  );
+}
 
 export default function TechnicienDashboard() {
   const { user } = useAuth();
@@ -41,86 +55,91 @@ export default function TechnicienDashboard() {
     }
   }
 
+  const statusCounts = useMemo(() => {
+    const counts = { EN_ATTENTE: 0, EN_COURS: 0, TERMINEE: 0, ANNULEE: 0 };
+    interventions.forEach((i) => {
+      if (counts[i.statut] !== undefined) counts[i.statut] += 1;
+    });
+    return counts;
+  }, [interventions]);
+
   return (
-    <>
-      <Navbar />
-      <div className="container py-4">
-        <div className="dashboard-hero mb-4 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
-          <div>
-            <div className="opacity-75 small">Tableau de bord</div>
-            <h4 className="fw-bold mb-0 text-break">
-              Bonjour, {user?.email}
-            </h4>
-          </div>
-          <span className="badge bg-white text-primary fs-6 align-self-start align-self-sm-auto px-3 py-2">
-            Technicien
-          </span>
+    <DashboardShell>
+      <div className="dash-topline">
+        <div>
+          <h2>Bonjour, {user?.email}</h2>
+          <p>Voici les interventions qui vous sont assignées</p>
         </div>
-
-        {error && <div className="alert alert-danger py-2">{error}</div>}
-
-        <div className="card border-0 shadow-sm">
-          <div className="card-header bg-white fw-semibold border-bottom">
-            Mes interventions assignées
-          </div>
-          <div className="card-body p-0">
-            {loading ? (
-              <div className="text-center text-muted py-5">Chargement...</div>
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-hover mb-0 align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th className="ps-3">#</th>
-                      <th>Titre</th>
-                      <th className="d-none d-md-table-cell">Description</th>
-                      <th>Date</th>
-                      <th>Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {interventions.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center text-muted py-4">
-                          Aucune intervention assignée pour l'instant
-                        </td>
-                      </tr>
-                    ) : (
-                      interventions.map((i) => (
-                        <tr key={i.id}>
-                          <td className="ps-3">{i.id}</td>
-                          <td>{i.titre}</td>
-                          <td className="d-none d-md-table-cell">{i.description || '—'}</td>
-                          <td>{i.dateIntervention || '—'}</td>
-                          <td>
-                            <div className="d-flex flex-column flex-xl-row align-items-start align-items-xl-center gap-2">
-                              <span className={`badge bg-${statutColor(i.statut)}`}>
-                                {statutLabel(i.statut)}
-                              </span>
-                              <select
-                                className="form-select form-select-sm w-auto"
-                                value={i.statut}
-                                disabled={updatingId === i.id}
-                                onChange={(e) => handleStatutChange(i, e.target.value)}
-                              >
-                                {STATUTS.map((s) => (
-                                  <option key={s.value} value={s.value}>
-                                    {s.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+        <div className="dash-topline-actions">
+          <NotificationBell />
         </div>
       </div>
-    </>
+
+      {error && <div className="alert alert-danger py-2">{error}</div>}
+
+      <div className="dash-kpis dash-kpis-3">
+        <KpiCard icon={FiTool} label="Interventions assignées" value={loading ? '—' : interventions.length} tone="accent" />
+        <KpiCard icon={FiClock} label="En cours" value={loading ? '—' : statusCounts.EN_COURS} tone="warn" />
+        <KpiCard icon={FiCheckCircle} label="Terminées" value={loading ? '—' : statusCounts.TERMINEE} tone="good" />
+      </div>
+
+      <div className="dash-card">
+        <h3>Mes interventions</h3>
+        {loading ? (
+          <div className="dash-empty">Chargement...</div>
+        ) : (
+          <div className="table-responsive">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>Titre</th>
+                  <th className="d-none d-md-table-cell">Description</th>
+                  <th>Date</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {interventions.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="dash-empty">Aucune intervention assignée pour l'instant</td>
+                  </tr>
+                ) : (
+                  interventions.map((i) => {
+                    const style = statutStyle(i.statut);
+                    return (
+                      <tr key={i.id}>
+                        <td>{i.titre}</td>
+                        <td className="d-none d-md-table-cell">{i.description || '—'}</td>
+                        <td>{i.dateIntervention || '—'}</td>
+                        <td>
+                          <div className="d-flex flex-column flex-xl-row align-items-start align-items-xl-center gap-2">
+                            <span className="dash-pill" style={{ background: style.bg, color: style.fg }}>
+                              <span className="dot" style={{ background: style.dot }} />
+                              {statutLabel(i.statut)}
+                            </span>
+                            <select
+                              className="form-select form-select-sm w-auto"
+                              value={i.statut}
+                              disabled={updatingId === i.id}
+                              onChange={(e) => handleStatutChange(i, e.target.value)}
+                            >
+                              {STATUTS.map((s) => (
+                                <option key={s.value} value={s.value}>
+                                  {s.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </DashboardShell>
   );
 }

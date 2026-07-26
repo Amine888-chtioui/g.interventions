@@ -22,4 +22,19 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponse> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        return ResponseEntity.ok(authService.forgotPassword(request));
+    }
+
+    @PostMapping("/verify-reset-code")
+    public ResponseEntity<MessageResponse> verifyResetCode(@RequestBody VerifyResetCodeRequest request) {
+        return ResponseEntity.ok(authService.verifyResetCode(request));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
+        return ResponseEntity.ok(authService.resetPassword(request));
+    }
 }

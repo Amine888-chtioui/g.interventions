@@ -1,22 +1,44 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
+import { useEffect, useMemo, useState } from 'react';
+import { FiTool, FiClock, FiCheckCircle, FiUsers } from 'react-icons/fi';
+import DashboardShell from '../components/DashboardShell';
+import NotificationBell from '../components/NotificationBell';
 import { useAuth } from '../context/AuthContext';
 import { getInterventions } from '../api/interventionApi';
 import { getUsers } from '../api/userApi';
-import { statutLabel, statutColor } from '../constants/statut';
+import { statutLabel, statutStyle } from '../constants/statut';
 
-function StatCard({ title, value, icon, color }) {
+const STATUT_ORDER = ['EN_ATTENTE', 'EN_COURS', 'TERMINEE', 'ANNULEE'];
+const TECH_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
+
+function KpiCard({ icon: Icon, label, value, tone }) {
   return (
-    <div className="card border-0 shadow-sm h-100">
-      <div className="card-body d-flex align-items-center gap-3">
-        <div className={`stat-icon bg-${color} bg-opacity-10`}>
-          <span className={`fs-4 text-${color}`}>{icon}</span>
-        </div>
-        <div>
-          <div className="text-muted small">{title}</div>
-          <div className="fs-4 fw-bold">{value}</div>
-        </div>
+    <div className="dash-kpi">
+      <div className={`ico tone-${tone}`}>
+        <Icon />
+      </div>
+      <div className="val">{value}</div>
+      <div className="lbl">{label}</div>
+    </div>
+  );
+}
+
+function StatusDonut({ counts, total }) {
+  if (total === 0) {
+    return <div className="dash-donut" style={{ background: '#eceef2' }} />;
+  }
+  let cursor = 0;
+  const stops = STATUT_ORDER.map((s) => {
+    const pct = (counts[s] / total) * 100;
+    const from = cursor;
+    cursor += pct;
+    return `${statutStyle(s).dot} ${from}% ${cursor}%`;
+  }).join(', ');
+
+  return (
+    <div className="dash-donut" style={{ background: `conic-gradient(${stops})` }}>
+      <div className="dash-donut-mid">
+        <b>{total}</b>
+        <span>total</span>
       </div>
     </div>
   );
@@ -24,10 +46,9 @@ function StatCard({ title, value, icon, color }) {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [interventions, setInterventions] = useState([]);
-  const [technicienCount, setTechnicienCount] = useState(0);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,7 +56,7 @@ export default function AdminDashboard() {
       try {
         const [interventionsRes, usersRes] = await Promise.all([getInterventions(), getUsers()]);
         setInterventions(interventionsRes.data);
-        setTechnicienCount(usersRes.data.filter((u) => u.role === 'TECHNICIEN').length);
+        setUsers(usersRes.data);
       } catch {
         // le tableau de bord reste vide en cas d'erreur, les pages dédiées affichent le détail
       } finally {
@@ -45,78 +66,148 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  const enCoursCount = interventions.filter((i) => i.statut === 'EN_COURS').length;
-  const dernieresInterventions = [...interventions]
-    .sort((a, b) => b.id - a.id)
-    .slice(0, 5);
+  const technicienCount = users.filter((u) => u.role === 'TECHNICIEN').length;
+
+  const statusCounts = useMemo(() => {
+    const counts = { EN_ATTENTE: 0, EN_COURS: 0, TERMINEE: 0, ANNULEE: 0 };
+    interventions.forEach((i) => {
+      if (counts[i.statut] !== undefined) counts[i.statut] += 1;
+    });
+    return counts;
+  }, [interventions]);
+
+  const parTechnicien = useMemo(() => {
+    const map = new Map();
+    interventions.forEach((i) => {
+      if (!i.technicienId) return;
+      const entry = map.get(i.technicienId) || {
+        name: `${i.technicienPrenom || ''} ${i.technicienNom || ''}`.trim() || `Technicien #${i.technicienId}`,
+        count: 0,
+      };
+      entry.count += 1;
+      map.set(i.technicienId, entry);
+    });
+    return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 5);
+  }, [interventions]);
+
+  const maxTech = parTechnicien.length ? parTechnicien[0].count : 1;
+
+  const dernieresInterventions = [...interventions].sort((a, b) => b.id - a.id).slice(0, 5);
 
   return (
-    <>
-      <Navbar />
-      <div className="container py-4">
-        <div className="dashboard-hero mb-4 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
-          <div>
-            <div className="opacity-75 small">Tableau de bord</div>
-            <h4 className="fw-bold mb-0 text-break">
-              Bonjour, {user?.email}
-            </h4>
-          </div>
-          <span className="badge bg-white text-primary fs-6 align-self-start align-self-sm-auto px-3 py-2">
-            Admin
-          </span>
+    <DashboardShell>
+      <div className="dash-topline">
+        <div>
+          <h2>Bonjour, {user?.email}</h2>
+          <p>Voici l'activité des interventions</p>
         </div>
-
-        <div className="row g-3 mb-4">
-          <div className="col-12 col-sm-6 col-md-4">
-            <StatCard title="Interventions totales" value={loading ? '—' : interventions.length} icon="🔧" color="primary" />
-          </div>
-          <div className="col-12 col-sm-6 col-md-4">
-            <StatCard title="En cours" value={loading ? '—' : enCoursCount} icon="⏳" color="warning" />
-          </div>
-          <div className="col-12 col-sm-6 col-md-4">
-            <StatCard title="Techniciens" value={loading ? '—' : technicienCount} icon="👷" color="success" />
-          </div>
-        </div>
-
-        <div className="row g-3">
-          <div className="col-12 col-lg-6">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-header bg-white fw-semibold border-bottom">
-                Dernières interventions
-              </div>
-              {dernieresInterventions.length === 0 ? (
-                <div className="card-body text-muted text-center py-5">
-                  Aucune donnée pour l'instant
-                </div>
-              ) : (
-                <ul className="list-group list-group-flush">
-                  {dernieresInterventions.map((i) => (
-                    <li key={i.id} className="list-group-item d-flex justify-content-between align-items-center gap-2">
-                      <span className="text-truncate">{i.titre}</span>
-                      <span className={`badge bg-${statutColor(i.statut)} flex-shrink-0`}>{statutLabel(i.statut)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-          <div className="col-12 col-lg-6">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-header bg-white fw-semibold border-bottom">
-                Actions rapides
-              </div>
-              <div className="card-body d-flex flex-column gap-2">
-                <button className="btn btn-primary" onClick={() => navigate('/admin/interventions')}>
-                  + Nouvelle intervention
-                </button>
-                <button className="btn btn-outline-secondary" onClick={() => navigate('/admin/utilisateurs')}>
-                  Gérer les techniciens
-                </button>
-              </div>
-            </div>
-          </div>
+        <div className="dash-topline-actions">
+          <NotificationBell />
         </div>
       </div>
-    </>
+
+      <div className="dash-kpis">
+        <KpiCard icon={FiTool} label="Interventions totales" value={loading ? '—' : interventions.length} tone="accent" />
+        <KpiCard icon={FiClock} label="En cours" value={loading ? '—' : statusCounts.EN_COURS} tone="warn" />
+        <KpiCard icon={FiCheckCircle} label="Terminées" value={loading ? '—' : statusCounts.TERMINEE} tone="good" />
+        <KpiCard icon={FiUsers} label="Techniciens actifs" value={loading ? '—' : technicienCount} tone="muted" />
+      </div>
+
+      <div className="dash-grid2">
+        <div className="dash-card">
+          <h3>
+            Répartition par statut
+            <span>{loading ? '…' : `${interventions.length} interventions`}</span>
+          </h3>
+          {loading ? (
+            <div className="dash-empty">Chargement...</div>
+          ) : interventions.length === 0 ? (
+            <div className="dash-empty">Aucune donnée pour l'instant</div>
+          ) : (
+            <div className="dash-donut-wrap">
+              <StatusDonut counts={statusCounts} total={interventions.length} />
+              <ul className="dash-legend">
+                {STATUT_ORDER.map((s) => (
+                  <li className="li" key={s}>
+                    <span className="dot" style={{ background: statutStyle(s).dot }} />
+                    <span className="txt">{statutLabel(s)}</span>
+                    <b>{statusCounts[s]}</b>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        <div className="dash-card">
+          <h3>
+            Interventions par technicien
+            <span>Top 5</span>
+          </h3>
+          {loading ? (
+            <div className="dash-empty">Chargement...</div>
+          ) : parTechnicien.length === 0 ? (
+            <div className="dash-empty">Aucune intervention assignée</div>
+          ) : (
+            <div className="dash-bars">
+              {parTechnicien.map((t, idx) => (
+                <div className="bar-row" key={idx}>
+                  <span className="name" title={t.name}>{t.name}</span>
+                  <div className="bar-track">
+                    <div
+                      className="bar-fill"
+                      style={{ width: `${(t.count / maxTech) * 100}%`, background: TECH_COLORS[idx % TECH_COLORS.length] }}
+                    />
+                  </div>
+                  <span className="n">{t.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="dash-card">
+        <h3>Dernières interventions</h3>
+        {loading ? (
+          <div className="dash-empty">Chargement...</div>
+        ) : dernieresInterventions.length === 0 ? (
+          <div className="dash-empty">Aucune donnée pour l'instant</div>
+        ) : (
+          <div className="table-responsive">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>Titre</th>
+                  <th className="d-none d-md-table-cell">Technicien</th>
+                  <th className="d-none d-md-table-cell">Date</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dernieresInterventions.map((i) => {
+                  const style = statutStyle(i.statut);
+                  return (
+                    <tr key={i.id}>
+                      <td className="text-truncate">{i.titre}</td>
+                      <td className="d-none d-md-table-cell">
+                        {i.technicienId ? `${i.technicienPrenom} ${i.technicienNom}` : <span className="text-muted">Non assigné</span>}
+                      </td>
+                      <td className="d-none d-md-table-cell">{i.dateIntervention || '—'}</td>
+                      <td>
+                        <span className="dash-pill" style={{ background: style.bg, color: style.fg }}>
+                          <span className="dot" style={{ background: style.dot }} />
+                          {statutLabel(i.statut)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </DashboardShell>
   );
 }

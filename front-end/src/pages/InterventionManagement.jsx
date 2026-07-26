@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import { STATUTS, statutLabel, statutColor } from '../constants/statut';
+import DashboardShell from '../components/DashboardShell';
+import NotificationBell from '../components/NotificationBell';
+import { STATUTS, statutLabel, statutStyle } from '../constants/statut';
 import { getUsers } from '../api/userApi';
 import {
   getInterventions,
@@ -114,133 +114,130 @@ export default function InterventionManagement() {
   }
 
   return (
-    <>
-      <Navbar />
-      <div className="container py-4">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <Link to="/admin" className="text-decoration-none small">&larr; Retour au tableau de bord</Link>
-            <h4 className="fw-bold mt-1 mb-0">Gestion des interventions</h4>
-          </div>
-          <button className="btn btn-primary" onClick={openCreateForm}>
+    <DashboardShell>
+      <div className="dash-topline">
+        <div>
+          <h2>Gestion des interventions</h2>
+          <p>{loading ? 'Chargement…' : `${interventions.length} intervention${interventions.length > 1 ? 's' : ''} au total`}</p>
+        </div>
+        <div className="dash-topline-actions">
+          <NotificationBell />
+          <button className="btn btn-primary btn-sm" onClick={openCreateForm}>
             + Nouvelle intervention
           </button>
         </div>
+      </div>
 
-        {error && <div className="alert alert-danger py-2">{error}</div>}
+      {error && <div className="alert alert-danger py-2">{error}</div>}
 
-        {showForm && (
-          <div className="card border-0 shadow-sm mb-4">
-            <div className="card-header bg-white fw-semibold border-bottom">
-              {editingIntervention ? 'Modifier une intervention' : 'Créer une intervention'}
+      {showForm && (
+        <div className="dash-card">
+          <h3>{editingIntervention ? 'Modifier une intervention' : 'Créer une intervention'}</h3>
+          {formError && <div className="alert alert-danger py-2">{formError}</div>}
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label className="form-label">Titre</label>
+              <input
+                type="text"
+                name="titre"
+                className="form-control"
+                value={form.titre}
+                onChange={handleChange}
+                required
+              />
             </div>
-            <div className="card-body">
-              {formError && <div className="alert alert-danger py-2">{formError}</div>}
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label className="form-label">Titre</label>
-                  <input
-                    type="text"
-                    name="titre"
-                    className="form-control"
-                    value={form.titre}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
 
-                <div className="mb-3">
-                  <label className="form-label">Description</label>
-                  <textarea
-                    name="description"
-                    className="form-control"
-                    rows={3}
-                    value={form.description}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="row g-3 mb-3">
-                  <div className="col-md-4">
-                    <label className="form-label">Date</label>
-                    <input
-                      type="date"
-                      name="dateIntervention"
-                      className="form-control"
-                      value={form.dateIntervention}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Technicien assigné</label>
-                    <select
-                      name="technicienId"
-                      className="form-select"
-                      value={form.technicienId}
-                      onChange={handleChange}
-                    >
-                      <option value="">Non assigné</option>
-                      {techniciens.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.prenom} {t.nom}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Statut</label>
-                    <select
-                      name="statut"
-                      className="form-select"
-                      value={form.statut}
-                      onChange={handleChange}
-                    >
-                      {STATUTS.map((s) => (
-                        <option key={s.value} value={s.value}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="d-flex gap-2">
-                  <button type="submit" className="btn btn-primary" disabled={saving}>
-                    {saving ? 'Enregistrement...' : 'Enregistrer'}
-                  </button>
-                  <button type="button" className="btn btn-outline-secondary" onClick={closeForm}>
-                    Annuler
-                  </button>
-                </div>
-              </form>
+            <div className="mb-3">
+              <label className="form-label">Description</label>
+              <textarea
+                name="description"
+                className="form-control"
+                rows={3}
+                value={form.description}
+                onChange={handleChange}
+              />
             </div>
-          </div>
-        )}
 
-        <div className="card border-0 shadow-sm">
-          <div className="card-header bg-white fw-semibold border-bottom">
-            Interventions ({interventions.length})
-          </div>
-          <div className="card-body p-0">
-            {loading ? (
-              <div className="text-center text-muted py-5">Chargement...</div>
-            ) : interventions.length === 0 ? (
-              <div className="text-center text-muted py-5">Aucune intervention</div>
-            ) : (
-              <table className="table table-hover mb-0 align-middle">
-                <thead>
-                  <tr>
-                    <th className="ps-3">Titre</th>
-                    <th>Date</th>
-                    <th>Technicien</th>
-                    <th>Statut</th>
-                    <th className="text-end pe-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {interventions.map((i) => (
+            <div className="row g-3 mb-3">
+              <div className="col-md-4">
+                <label className="form-label">Date</label>
+                <input
+                  type="date"
+                  name="dateIntervention"
+                  className="form-control"
+                  value={form.dateIntervention}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="col-md-4">
+                <label className="form-label">Technicien assigné</label>
+                <select
+                  name="technicienId"
+                  className="form-select"
+                  value={form.technicienId}
+                  onChange={handleChange}
+                >
+                  <option value="">Non assigné</option>
+                  {techniciens.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.prenom} {t.nom}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-4">
+                <label className="form-label">Statut</label>
+                <select
+                  name="statut"
+                  className="form-select"
+                  value={form.statut}
+                  onChange={handleChange}
+                >
+                  {STATUTS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="d-flex gap-2">
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+              <button type="button" className="btn btn-outline-secondary" onClick={closeForm}>
+                Annuler
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="dash-card">
+        <h3>Interventions<span>{interventions.length}</span></h3>
+        {loading ? (
+          <div className="dash-empty">Chargement...</div>
+        ) : interventions.length === 0 ? (
+          <div className="dash-empty">Aucune intervention</div>
+        ) : (
+          <div className="table-responsive">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>Titre</th>
+                  <th>Date</th>
+                  <th>Technicien</th>
+                  <th>Statut</th>
+                  <th className="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {interventions.map((i) => {
+                  const style = statutStyle(i.statut);
+                  return (
                     <tr key={i.id}>
-                      <td className="ps-3">{i.titre}</td>
+                      <td>{i.titre}</td>
                       <td>{i.dateIntervention || '—'}</td>
                       <td>
                         {i.technicienId ? `${i.technicienPrenom} ${i.technicienNom}` : (
@@ -248,11 +245,12 @@ export default function InterventionManagement() {
                         )}
                       </td>
                       <td>
-                        <span className={`badge bg-${statutColor(i.statut)}`}>
+                        <span className="dash-pill" style={{ background: style.bg, color: style.fg }}>
+                          <span className="dot" style={{ background: style.dot }} />
                           {statutLabel(i.statut)}
                         </span>
                       </td>
-                      <td className="text-end pe-3">
+                      <td className="text-end">
                         <button
                           className="btn btn-sm btn-outline-secondary me-2"
                           onClick={() => openEditForm(i)}
@@ -267,13 +265,13 @@ export default function InterventionManagement() {
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
       </div>
-    </>
+    </DashboardShell>
   );
 }

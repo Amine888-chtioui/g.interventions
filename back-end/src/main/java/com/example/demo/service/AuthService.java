@@ -10,15 +10,21 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
+    private final EmailService emailService;
 
     public AuthResponse login(LoginRequest request) {
         // Spring vérifie email + password, lance une exception si incorrect
@@ -59,5 +65,55 @@ public class AuthService {
         String token = jwtService.generateToken(userDetails);
 
         return new AuthResponse(token, user.getRole().name(), user.getEmail());
+    }
+
+    public MessageResponse forgotPassword(ForgotPasswordRequest request) {
+        userRepository.findByEmail(request.getEmail()).ifPresent(user -> {
+            String code = String.format("%06d", RANDOM.nextInt(1_000_000));
+            user.setResetCode(code);
+            user.setResetCodeExpiry(LocalDateTime.now().plusMinutes(10));
+            userRepository.save(user);
+            emailService.sendResetCode(user.getEmail(), code);
+        });
+
+        // Message générique : on ne révèle jamais si l'email existe ou non
+        return new MessageResponse("Si cet email existe, un code de vérification a été envoyé.");
+    }
+
+    public MessageResponse verifyResetCode(VerifyResetCodeRequest request) {
+        getUserWithValidResetCode(request.getEmail(), request.getCode());
+        return new MessageResponse("Code vérifié.");
+    }
+
+    public MessageResponse resetPassword(ResetPasswordRequest request) {
+        User user = getUserWithValidResetCode(request.getEmail(), request.getCode());
+
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 6) {
+            throw new RuntimeException("Le mot de passe doit contenir au moins 6 caractères.");
+        }
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Les mots de passe ne correspondent pas.");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setResetCode(null);
+        user.setResetCodeExpiry(null);
+        userRepository.save(user);
+
+        return new MessageResponse("Mot de passe réinitialisé avec succès.");
+    }
+
+    private User getUserWithValidResetCode(String email, String code) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Code invalide ou expiré."));
+
+        if (user.getResetCode() == null
+                || !user.getResetCode().equals(code)
+                || user.getResetCodeExpiry() == null
+                || user.getResetCodeExpiry().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Code invalide ou expiré.");
+        }
+
+        return user;
     }
 }

@@ -3,6 +3,8 @@ package com.example.demo.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 @Data
@@ -26,4 +28,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    private String resetCode;
+    private LocalDateTime resetCodeExpiry;
 }

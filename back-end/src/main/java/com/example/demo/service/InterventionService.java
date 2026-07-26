@@ -15,6 +15,7 @@ public class InterventionService {
 
     private final InterventionRepository interventionRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public List<InterventionResponse> getAllInterventions() {
         return interventionRepository.findAll().stream()
@@ -36,27 +37,47 @@ public class InterventionService {
     }
 
     public InterventionResponse createIntervention(InterventionRequest request) {
+        User technicien = resolveTechnicien(request.getTechnicienId());
+
         Intervention intervention = Intervention.builder()
                 .titre(request.getTitre())
                 .description(request.getDescription())
                 .dateIntervention(request.getDateIntervention())
                 .statut(parseStatut(request.getStatut(), StatutIntervention.EN_ATTENTE))
-                .technicien(resolveTechnicien(request.getTechnicienId()))
+                .technicien(technicien)
                 .build();
 
-        return toResponse(interventionRepository.save(intervention));
+        intervention = interventionRepository.save(intervention);
+
+        if (technicien != null) {
+            notificationService.notifyAssignation(technicien, intervention.getId(), intervention.getTitre());
+        }
+
+        return toResponse(intervention);
     }
 
     public InterventionResponse updateIntervention(Long id, InterventionRequest request) {
         Intervention intervention = findById(id);
+        Long previousTechnicienId = intervention.getTechnicien() != null
+                ? intervention.getTechnicien().getId()
+                : null;
+
+        User technicien = resolveTechnicien(request.getTechnicienId());
 
         intervention.setTitre(request.getTitre());
         intervention.setDescription(request.getDescription());
         intervention.setDateIntervention(request.getDateIntervention());
-        intervention.setTechnicien(resolveTechnicien(request.getTechnicienId()));
+        intervention.setTechnicien(technicien);
         intervention.setStatut(parseStatut(request.getStatut(), intervention.getStatut()));
 
-        return toResponse(interventionRepository.save(intervention));
+        intervention = interventionRepository.save(intervention);
+
+        boolean reassignee = technicien != null && !technicien.getId().equals(previousTechnicienId);
+        if (reassignee) {
+            notificationService.notifyAssignation(technicien, intervention.getId(), intervention.getTitre());
+        }
+
+        return toResponse(intervention);
     }
 
     public InterventionResponse updateStatut(Long id, String statut, String currentUserEmail) {
@@ -71,8 +92,21 @@ public class InterventionService {
             throw new RuntimeException("Vous n'êtes pas autorisé à modifier cette intervention");
         }
 
-        intervention.setStatut(parseStatut(statut, intervention.getStatut()));
-        return toResponse(interventionRepository.save(intervention));
+        StatutIntervention statutPrecedent = intervention.getStatut();
+        StatutIntervention nouveauStatut = parseStatut(statut, statutPrecedent);
+        intervention.setStatut(nouveauStatut);
+        intervention = interventionRepository.save(intervention);
+
+        boolean vientDEtreTerminee = nouveauStatut == StatutIntervention.TERMINEE
+                && statutPrecedent != StatutIntervention.TERMINEE;
+
+        if (vientDEtreTerminee && currentUser.getRole() == Role.TECHNICIEN) {
+            List<User> admins = userRepository.findByRole(Role.ADMIN);
+            String technicienNomComplet = (currentUser.getPrenom() + " " + currentUser.getNom()).trim();
+            notificationService.notifyTerminee(admins, intervention.getId(), intervention.getTitre(), technicienNomComplet);
+        }
+
+        return toResponse(intervention);
     }
 
     public void deleteIntervention(Long id) {
