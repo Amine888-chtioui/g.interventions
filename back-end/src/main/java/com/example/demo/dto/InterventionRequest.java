@@ -11,4 +11,5 @@ public class InterventionRequest {
     private LocalDate dateIntervention;
     private Long technicienId;
     private String statut;
+    private String priorite;
 }

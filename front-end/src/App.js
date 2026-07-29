@@ -7,6 +7,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import TechnicienDashboard from './pages/TechnicienDashboard';
 import UserManagement from './pages/UserManagement';
 import InterventionManagement from './pages/InterventionManagement';
+import ProfilePage from './pages/ProfilePage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -52,6 +53,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRole="TECHNICIEN">
                 <TechnicienDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />

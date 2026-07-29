@@ -34,3 +34,6 @@ build/
 
 ### Secrets locaux ###
 src/main/resources/application-local.properties
+
+### Fichiers uploades ###
+uploads/

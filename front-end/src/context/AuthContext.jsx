@@ -27,8 +27,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  function updateIdentity({ email, token }) {
+    if (token) localStorage.setItem('token', token);
+    if (email) localStorage.setItem('email', email);
+    setUser((prev) => ({ ...prev, ...(token ? { token } : {}), ...(email ? { email } : {}) }));
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateIdentity }}>
       {children}
     </AuthContext.Provider>
   );

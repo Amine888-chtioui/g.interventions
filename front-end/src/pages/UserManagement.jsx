@@ -18,21 +18,31 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Recherche en temps réel : on attend une pause de frappe avant d'interroger le serveur.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     fetchUsers();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   async function fetchUsers() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await getUsers();
+      const { data } = await getUsers({ q: debouncedSearch || undefined });
       setUsers(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors du chargement des utilisateurs.');
@@ -99,7 +109,11 @@ export default function UserManagement() {
       <div className="dash-topline">
         <div>
           <h2>Gestion des utilisateurs</h2>
-          <p>{loading ? 'Chargement…' : `${users.length} utilisateur${users.length > 1 ? 's' : ''} au total`}</p>
+          <p>
+            {loading
+              ? 'Chargement…'
+              : `${users.length} ${debouncedSearch ? 'résultat' : 'utilisateur'}${users.length > 1 ? 's' : ''}${debouncedSearch ? ' trouvé' + (users.length > 1 ? 's' : '') : ' au total'}`}
+          </p>
         </div>
         <div className="dash-topline-actions">
           <NotificationBell />
@@ -110,6 +124,21 @@ export default function UserManagement() {
       </div>
 
       {error && <div className="alert alert-danger py-2">{error}</div>}
+
+      <div className="dash-card">
+        <div className="row g-3">
+          <div className="col-md-6">
+            <label className="form-label">Recherche</label>
+            <input
+              type="search"
+              className="form-control"
+              placeholder="Nom, prénom ou email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
 
       {showForm && (
         <div className="dash-card">
@@ -199,7 +228,9 @@ export default function UserManagement() {
         {loading ? (
           <div className="dash-empty">Chargement...</div>
         ) : users.length === 0 ? (
-          <div className="dash-empty">Aucun utilisateur</div>
+          <div className="dash-empty">
+            {debouncedSearch ? 'Aucun résultat pour cette recherche' : 'Aucun utilisateur'}
+          </div>
         ) : (
           <div className="table-responsive">
             <table className="dash-table">

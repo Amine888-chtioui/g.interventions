@@ -1,15 +1,17 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FiGrid, FiTool, FiUsers, FiLogOut } from 'react-icons/fi';
+import { FiGrid, FiTool, FiUsers, FiUser, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
 const ADMIN_NAV = [
   { to: '/admin', label: 'Tableau de bord', icon: FiGrid },
   { to: '/admin/interventions', label: 'Interventions', icon: FiTool },
   { to: '/admin/utilisateurs', label: 'Utilisateurs', icon: FiUsers },
+  { to: '/profile', label: 'Mon profil', icon: FiUser },
 ];
 
 const TECHNICIEN_NAV = [
   { to: '/technicien', label: 'Mes interventions', icon: FiTool },
+  { to: '/profile', label: 'Mon profil', icon: FiUser },
 ];
 
 function initials(email) {

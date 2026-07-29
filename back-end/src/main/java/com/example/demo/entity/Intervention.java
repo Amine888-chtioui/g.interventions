@@ -7,7 +7,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "interventions")
+@Table(name = "interventions", indexes = {
+        @Index(name = "idx_intervention_statut", columnList = "statut"),
+        @Index(name = "idx_intervention_priorite", columnList = "priorite")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -31,6 +34,10 @@ public class Intervention {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StatutIntervention statut;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'NORMALE'")
+    private PrioriteIntervention priorite;
 
     @ManyToOne
     @JoinColumn(name = "technicien_id")

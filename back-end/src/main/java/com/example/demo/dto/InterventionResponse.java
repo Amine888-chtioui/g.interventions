@@ -15,7 +15,10 @@ public class InterventionResponse {
     private LocalDate dateIntervention;
     private LocalDateTime dateCreation;
     private String statut;
+    private String priorite;
     private Long technicienId;
     private String technicienNom;
     private String technicienPrenom;
+    private boolean rapportDisponible;
+    private int nombrePhotos;
 }

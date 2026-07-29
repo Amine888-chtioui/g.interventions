@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FiTool, FiClock, FiCheckCircle, FiUsers } from 'react-icons/fi';
 import DashboardShell from '../components/DashboardShell';
 import NotificationBell from '../components/NotificationBell';
+import useReveal from '../hooks/useReveal';
 import { useAuth } from '../context/AuthContext';
 import { getInterventions } from '../api/interventionApi';
 import { getUsers } from '../api/userApi';
@@ -11,8 +12,9 @@ const STATUT_ORDER = ['EN_ATTENTE', 'EN_COURS', 'TERMINEE', 'ANNULEE'];
 const TECH_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
 
 function KpiCard({ icon: Icon, label, value, tone }) {
+  const { ref, className } = useReveal();
   return (
-    <div className="dash-kpi">
+    <div ref={ref} className={`dash-kpi ${className}`}>
       <div className={`ico tone-${tone}`}>
         <Icon />
       </div>
@@ -46,6 +48,9 @@ function StatusDonut({ counts, total }) {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const donutCardReveal = useReveal();
+  const techCardReveal = useReveal();
+  const recentCardReveal = useReveal();
 
   const [interventions, setInterventions] = useState([]);
   const [users, setUsers] = useState([]);
@@ -114,7 +119,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="dash-grid2">
-        <div className="dash-card">
+        <div ref={donutCardReveal.ref} className={`dash-card ${donutCardReveal.className}`}>
           <h3>
             Répartition par statut
             <span>{loading ? '…' : `${interventions.length} interventions`}</span>
@@ -139,7 +144,7 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        <div className="dash-card">
+        <div ref={techCardReveal.ref} className={`dash-card ${techCardReveal.className}`}>
           <h3>
             Interventions par technicien
             <span>Top 5</span>
@@ -167,7 +172,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="dash-card">
+      <div ref={recentCardReveal.ref} className={`dash-card ${recentCardReveal.className}`}>
         <h3>Dernières interventions</h3>
         {loading ? (
           <div className="dash-empty">Chargement...</div>

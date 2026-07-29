@@ -17,8 +17,11 @@ public class AdminInterventionController {
     private final InterventionService interventionService;
 
     @GetMapping
-    public ResponseEntity<List<InterventionResponse>> getAllInterventions() {
-        return ResponseEntity.ok(interventionService.getAllInterventions());
+    public ResponseEntity<List<InterventionResponse>> getAllInterventions(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String statut,
+            @RequestParam(required = false) String priorite) {
+        return ResponseEntity.ok(interventionService.getAllInterventions(q, statut, priorite));
     }
 
     @GetMapping("/{id}")

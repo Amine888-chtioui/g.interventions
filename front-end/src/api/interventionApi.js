@@ -1,7 +1,7 @@
 import axiosInstance from './axiosInstance';
 
-export const getInterventions = () =>
-  axiosInstance.get('/api/admin/interventions');
+export const getInterventions = (params) =>
+  axiosInstance.get('/api/admin/interventions', { params });
 
 export const getIntervention = (id) =>
   axiosInstance.get(`/api/admin/interventions/${id}`);

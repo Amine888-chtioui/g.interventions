@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import DashboardShell from '../components/DashboardShell';
 import NotificationBell from '../components/NotificationBell';
+import PhotoGallery from '../components/PhotoGallery';
 import { STATUTS, statutLabel, statutStyle } from '../constants/statut';
+import { PRIORITES, prioriteLabel, prioriteStyle } from '../constants/priorite';
 import { getUsers } from '../api/userApi';
 import {
   getInterventions,
@@ -9,6 +11,7 @@ import {
   updateIntervention,
   deleteIntervention,
 } from '../api/interventionApi';
+import { getRapportPdfBlob } from '../api/rapportApi';
 
 const EMPTY_FORM = {
   titre: '',
@@ -16,6 +19,7 @@ const EMPTY_FORM = {
   dateIntervention: '',
   technicienId: '',
   statut: 'EN_ATTENTE',
+  priorite: 'NORMALE',
 };
 
 export default function InterventionManagement() {
@@ -24,28 +28,70 @@ export default function InterventionManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statutFilter, setStatutFilter] = useState('');
+  const [prioriteFilter, setPrioriteFilter] = useState('');
+  const hasActiveFilters = Boolean(debouncedSearch || statutFilter || prioriteFilter);
+
   const [showForm, setShowForm] = useState(false);
   const [editingIntervention, setEditingIntervention] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [loadingRapportId, setLoadingRapportId] = useState(null);
+
+  const [viewingDetailsFor, setViewingDetailsFor] = useState(null);
+  const [viewingPhotosFor, setViewingPhotosFor] = useState(null);
+
   useEffect(() => {
-    fetchData();
+    fetchTechniciens();
   }, []);
 
-  async function fetchData() {
+  // Recherche en temps réel : on attend une pause de frappe avant d'interroger le serveur.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    fetchInterventions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, statutFilter, prioriteFilter]);
+
+  async function fetchTechniciens() {
+    try {
+      const usersRes = await getUsers();
+      setTechniciens(usersRes.data.filter((u) => u.role === 'TECHNICIEN'));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erreur lors du chargement des techniciens.');
+    }
+  }
+
+  async function fetchInterventions() {
     setLoading(true);
     setError('');
     try {
-      const [interventionsRes, usersRes] = await Promise.all([getInterventions(), getUsers()]);
-      setInterventions(interventionsRes.data);
-      setTechniciens(usersRes.data.filter((u) => u.role === 'TECHNICIEN'));
+      const params = {
+        q: debouncedSearch || undefined,
+        statut: statutFilter || undefined,
+        priorite: prioriteFilter || undefined,
+      };
+      const { data } = await getInterventions(params);
+      setInterventions(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors du chargement des interventions.');
     } finally {
       setLoading(false);
     }
+  }
+
+  function resetFilters() {
+    setSearch('');
+    setDebouncedSearch('');
+    setStatutFilter('');
+    setPrioriteFilter('');
   }
 
   function openCreateForm() {
@@ -63,6 +109,7 @@ export default function InterventionManagement() {
       dateIntervention: i.dateIntervention || '',
       technicienId: i.technicienId ? String(i.technicienId) : '',
       statut: i.statut,
+      priorite: i.priorite || 'NORMALE',
     });
     setFormError('');
     setShowForm(true);
@@ -88,6 +135,7 @@ export default function InterventionManagement() {
         dateIntervention: form.dateIntervention || null,
         technicienId: form.technicienId ? Number(form.technicienId) : null,
         statut: form.statut,
+        priorite: form.priorite,
       };
       if (editingIntervention) {
         await updateIntervention(editingIntervention.id, payload);
@@ -95,7 +143,7 @@ export default function InterventionManagement() {
         await createIntervention(payload);
       }
       closeForm();
-      await fetchData();
+      await fetchInterventions();
     } catch (err) {
       setFormError(err.response?.data?.message || "Erreur lors de l'enregistrement.");
     } finally {
@@ -103,11 +151,41 @@ export default function InterventionManagement() {
     }
   }
 
+  async function handleViewRapportPdf(i) {
+    setLoadingRapportId(i.id);
+    setError('');
+    try {
+      const { data } = await getRapportPdfBlob(i.id);
+      const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erreur lors du chargement du rapport.');
+    } finally {
+      setLoadingRapportId(null);
+    }
+  }
+
+  function openDetailsView(i) {
+    setViewingDetailsFor(i);
+  }
+
+  function closeDetailsView() {
+    setViewingDetailsFor(null);
+  }
+
+  function openPhotosView(i) {
+    setViewingPhotosFor(i);
+  }
+
+  function closePhotosView() {
+    setViewingPhotosFor(null);
+  }
+
   async function handleDelete(i) {
     if (!window.confirm(`Supprimer l'intervention "${i.titre}" ?`)) return;
     try {
       await deleteIntervention(i.id);
-      await fetchData();
+      await fetchInterventions();
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la suppression.');
     }
@@ -118,7 +196,11 @@ export default function InterventionManagement() {
       <div className="dash-topline">
         <div>
           <h2>Gestion des interventions</h2>
-          <p>{loading ? 'Chargement…' : `${interventions.length} intervention${interventions.length > 1 ? 's' : ''} au total`}</p>
+          <p>
+            {loading
+              ? 'Chargement…'
+              : `${interventions.length} ${hasActiveFilters ? 'résultat' : 'intervention'}${interventions.length > 1 ? 's' : ''}${hasActiveFilters ? ' trouvé' + (interventions.length > 1 ? 's' : '') : ' au total'}`}
+          </p>
         </div>
         <div className="dash-topline-actions">
           <NotificationBell />
@@ -129,6 +211,62 @@ export default function InterventionManagement() {
       </div>
 
       {error && <div className="alert alert-danger py-2">{error}</div>}
+
+      <div className="dash-card">
+        <div className="row g-3 align-items-end">
+          <div className="col-md-5">
+            <label className="form-label">Recherche</label>
+            <input
+              type="search"
+              className="form-control"
+              placeholder="Titre, description ou technicien..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="col-md-3">
+            <label className="form-label">Statut</label>
+            <select
+              className="form-select"
+              value={statutFilter}
+              onChange={(e) => setStatutFilter(e.target.value)}
+            >
+              <option value="">Tous les statuts</option>
+              {STATUTS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="col-md-3">
+            <label className="form-label">Priorité</label>
+            <select
+              className="form-select"
+              value={prioriteFilter}
+              onChange={(e) => setPrioriteFilter(e.target.value)}
+            >
+              <option value="">Toutes les priorités</option>
+              {PRIORITES.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="col-md-1">
+            <button
+              type="button"
+              className="btn btn-outline-secondary w-100"
+              onClick={resetFilters}
+              disabled={!hasActiveFilters && !search}
+              title="Réinitialiser les filtres"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
 
       {showForm && (
         <div className="dash-card">
@@ -159,7 +297,7 @@ export default function InterventionManagement() {
             </div>
 
             <div className="row g-3 mb-3">
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label">Date</label>
                 <input
                   type="date"
@@ -169,7 +307,7 @@ export default function InterventionManagement() {
                   onChange={handleChange}
                 />
               </div>
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label">Technicien assigné</label>
                 <select
                   name="technicienId"
@@ -185,7 +323,7 @@ export default function InterventionManagement() {
                   ))}
                 </select>
               </div>
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label">Statut</label>
                 <select
                   name="statut"
@@ -196,6 +334,21 @@ export default function InterventionManagement() {
                   {STATUTS.map((s) => (
                     <option key={s.value} value={s.value}>
                       {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label">Priorité</label>
+                <select
+                  name="priorite"
+                  className="form-select"
+                  value={form.priorite}
+                  onChange={handleChange}
+                >
+                  {PRIORITES.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
                     </option>
                   ))}
                 </select>
@@ -214,12 +367,26 @@ export default function InterventionManagement() {
         </div>
       )}
 
+      {viewingPhotosFor && (
+        <div className="dash-card">
+          <div className="d-flex justify-content-between align-items-start">
+            <h3>Photos — {viewingPhotosFor.titre}</h3>
+            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={closePhotosView}>
+              Fermer
+            </button>
+          </div>
+          <PhotoGallery interventionId={viewingPhotosFor.id} canManage={false} />
+        </div>
+      )}
+
       <div className="dash-card">
         <h3>Interventions<span>{interventions.length}</span></h3>
         {loading ? (
           <div className="dash-empty">Chargement...</div>
         ) : interventions.length === 0 ? (
-          <div className="dash-empty">Aucune intervention</div>
+          <div className="dash-empty">
+            {hasActiveFilters ? 'Aucun résultat pour cette recherche' : 'Aucune intervention'}
+          </div>
         ) : (
           <div className="table-responsive">
             <table className="dash-table">
@@ -229,42 +396,109 @@ export default function InterventionManagement() {
                   <th>Date</th>
                   <th>Technicien</th>
                   <th>Statut</th>
+                  <th>Priorité</th>
                   <th className="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {interventions.map((i) => {
                   const style = statutStyle(i.statut);
+                  const pStyle = prioriteStyle(i.priorite);
+                  const isExpanded = viewingDetailsFor?.id === i.id;
                   return (
-                    <tr key={i.id}>
-                      <td>{i.titre}</td>
-                      <td>{i.dateIntervention || '—'}</td>
-                      <td>
-                        {i.technicienId ? `${i.technicienPrenom} ${i.technicienNom}` : (
-                          <span className="text-muted">Non assigné</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className="dash-pill" style={{ background: style.bg, color: style.fg }}>
-                          <span className="dot" style={{ background: style.dot }} />
-                          {statutLabel(i.statut)}
-                        </span>
-                      </td>
-                      <td className="text-end">
-                        <button
-                          className="btn btn-sm btn-outline-secondary me-2"
-                          onClick={() => openEditForm(i)}
-                        >
-                          Modifier
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDelete(i)}
-                        >
-                          Supprimer
-                        </button>
-                      </td>
-                    </tr>
+                    <Fragment key={i.id}>
+                      <tr
+                        className="dash-table-row-clickable"
+                        onClick={() => (isExpanded ? closeDetailsView() : openDetailsView(i))}
+                      >
+                        <td>{i.titre}</td>
+                        <td>{i.dateIntervention || '—'}</td>
+                        <td>
+                          {i.technicienId ? `${i.technicienPrenom} ${i.technicienNom}` : (
+                            <span className="text-muted">Non assigné</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className="dash-pill" style={{ background: style.bg, color: style.fg }}>
+                            <span className="dot" style={{ background: style.dot }} />
+                            {statutLabel(i.statut)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="dash-pill" style={{ background: pStyle.bg, color: pStyle.fg }}>
+                            <span className="dot" style={{ background: pStyle.dot }} />
+                            {prioriteLabel(i.priorite)}
+                          </span>
+                        </td>
+                        <td className="text-end" onClick={(e) => e.stopPropagation()}>
+                          {i.rapportDisponible && (
+                            <button
+                              className="btn btn-sm btn-outline-primary me-2"
+                              onClick={() => handleViewRapportPdf(i)}
+                              disabled={loadingRapportId === i.id}
+                            >
+                              {loadingRapportId === i.id ? 'Chargement...' : 'Voir le rapport'}
+                            </button>
+                          )}
+                          <button
+                            className="btn btn-sm btn-outline-secondary me-2"
+                            onClick={() => openPhotosView(i)}
+                          >
+                            Photos{i.nombrePhotos > 0 ? ` (${i.nombrePhotos})` : ''}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-secondary me-2"
+                            onClick={() => openEditForm(i)}
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDelete(i)}
+                          >
+                            Supprimer
+                          </button>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={6} className="dash-table-details-cell">
+                            <div className="d-flex justify-content-between align-items-start">
+                              <h3>{viewingDetailsFor.titre}</h3>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={closeDetailsView}
+                              >
+                                Fermer
+                              </button>
+                            </div>
+                            <dl className="row mb-0">
+                              <dt className="col-sm-3">Description</dt>
+                              <dd className="col-sm-9" style={{ whiteSpace: 'pre-wrap' }}>
+                                {viewingDetailsFor.description || '—'}
+                              </dd>
+
+                              <dt className="col-sm-3">Date</dt>
+                              <dd className="col-sm-9">{viewingDetailsFor.dateIntervention || '—'}</dd>
+
+                              <dt className="col-sm-3">Technicien</dt>
+                              <dd className="col-sm-9">
+                                {viewingDetailsFor.technicienId
+                                  ? `${viewingDetailsFor.technicienPrenom} ${viewingDetailsFor.technicienNom}`
+                                  : 'Non assigné'}
+                              </dd>
+
+                              <dt className="col-sm-3">Statut</dt>
+                              <dd className="col-sm-9">{statutLabel(viewingDetailsFor.statut)}</dd>
+
+                              <dt className="col-sm-3">Priorité</dt>
+                              <dd className="col-sm-9">{prioriteLabel(viewingDetailsFor.priorite)}</dd>
+                            </dl>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </tbody>
