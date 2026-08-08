@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FiTrash2, FiUpload, FiX, FiImage } from 'react-icons/fi';
 import { getPhotos, uploadPhotos, deletePhoto, getPhotoFileBlob } from '../api/photoApi';
 
-export default function PhotoGallery({ interventionId, canManage = false }) {
+export default function PhotoGallery({ interventionId, canManage = false, onClose }) {
   const [photos, setPhotos] = useState([]);
   const [previews, setPreviews] = useState({});
   const [loading, setLoading] = useState(true);
@@ -87,22 +87,31 @@ export default function PhotoGallery({ interventionId, canManage = false }) {
     <div className="dash-photo-gallery">
       {error && <div className="alert alert-danger py-2">{error}</div>}
 
-      {canManage && (
+      {(canManage || onClose) && (
         <div className="dash-photo-upload">
-          <label className="btn btn-sm btn-outline-primary mb-0">
-            <FiUpload className="me-1" />
-            Ajouter des photos
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={handleFilesSelected}
-              disabled={uploading}
-            />
-          </label>
-          {uploading && <span className="text-muted">Envoi en cours...</span>}
+          {canManage && (
+            <>
+              <label className="btn btn-sm btn-outline-primary mb-0">
+                <FiUpload className="me-1" />
+                Ajouter des photos
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={handleFilesSelected}
+                  disabled={uploading}
+                />
+              </label>
+              {uploading && <span className="text-muted">Envoi en cours...</span>}
+            </>
+          )}
+          {onClose && (
+            <button type="button" className="btn btn-sm btn-outline-secondary ms-auto" onClick={onClose}>
+              Fermer
+            </button>
+          )}
         </div>
       )}
 

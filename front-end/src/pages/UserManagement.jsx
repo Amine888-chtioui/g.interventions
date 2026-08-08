@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import DashboardShell from '../components/DashboardShell';
 import NotificationBell from '../components/NotificationBell';
+import Toast from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 import { getUsers, createUser, updateUser, deleteUser } from '../api/userApi';
 
@@ -17,6 +19,7 @@ export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState('');
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -82,8 +85,10 @@ export default function UserManagement() {
       if (editingUser) {
         const { nom, prenom, email, role } = form;
         await updateUser(editingUser.id, { nom, prenom, email, role });
+        setToast('Utilisateur modifié avec succès.');
       } else {
         await createUser(form);
+        setToast('Utilisateur créé avec succès.');
       }
       closeForm();
       await fetchUsers();
@@ -98,6 +103,7 @@ export default function UserManagement() {
     if (!window.confirm(`Supprimer l'utilisateur ${u.prenom} ${u.nom} ?`)) return;
     try {
       await deleteUser(u.id);
+      setToast('Utilisateur supprimé avec succès.');
       await fetchUsers();
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la suppression.');
@@ -105,7 +111,9 @@ export default function UserManagement() {
   }
 
   return (
-    <DashboardShell>
+    <>
+      {toast && <Toast key={toast} message={toast} onDone={() => setToast('')} />}
+      <DashboardShell>
       <div className="dash-topline">
         <div>
           <h2>Gestion des utilisateurs</h2>
@@ -116,18 +124,18 @@ export default function UserManagement() {
           </p>
         </div>
         <div className="dash-topline-actions">
-          <NotificationBell />
           <button className="btn btn-primary btn-sm" onClick={openCreateForm}>
             + Nouvel utilisateur
           </button>
+          <NotificationBell />
         </div>
       </div>
 
       {error && <div className="alert alert-danger py-2">{error}</div>}
 
       <div className="dash-card">
-        <div className="row g-3">
-          <div className="col-md-6">
+        <div className="row g-3 align-items-end">
+          <div className="col-md-5">
             <label className="form-label">Recherche</label>
             <input
               type="search"
@@ -136,6 +144,17 @@ export default function UserManagement() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+          </div>
+          <div className="col-md-1">
+            <button
+              type="button"
+              className="btn btn-outline-secondary w-100"
+              onClick={() => setSearch('')}
+              disabled={!search}
+              title="Réinitialiser la recherche"
+            >
+              ✕
+            </button>
           </div>
         </div>
       </div>
@@ -258,20 +277,29 @@ export default function UserManagement() {
                         </span>
                       </td>
                       <td className="text-end">
-                        <button
-                          className="btn btn-sm btn-outline-secondary me-2"
-                          onClick={() => openEditForm(u)}
-                        >
-                          Modifier
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          disabled={u.email === user?.email}
-                          title={u.email === user?.email ? 'Vous ne pouvez pas supprimer votre propre compte' : ''}
-                          onClick={() => handleDelete(u)}
-                        >
-                          Supprimer
-                        </button>
+                        <div className="dash-table-actions">
+                          <button
+                            type="button"
+                            className="dash-table-action-btn"
+                            onClick={() => openEditForm(u)}
+                            aria-label="Modifier"
+                          >
+                            <span className="dash-table-action-tip">Modifier</span>
+                            <FiEdit2 />
+                          </button>
+                          <button
+                            type="button"
+                            className="dash-table-action-btn is-danger"
+                            disabled={u.email === user?.email}
+                            onClick={() => handleDelete(u)}
+                            aria-label="Supprimer"
+                          >
+                            <span className="dash-table-action-tip">
+                              {u.email === user?.email ? 'Vous ne pouvez pas supprimer votre propre compte' : 'Supprimer'}
+                            </span>
+                            <FiTrash2 />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -281,6 +309,7 @@ export default function UserManagement() {
           </div>
         )}
       </div>
-    </DashboardShell>
+      </DashboardShell>
+    </>
   );
 }

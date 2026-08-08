@@ -209,7 +209,7 @@ export default function AuthPage() {
         <div className="authp-overlay-container">
           <div className="authp-overlay">
             <div className="authp-overlay-panel authp-overlay-panel--left">
-              <h2 className="auth2-brand-title">Content de vous revoir !</h2>
+              <h2 className="auth2-brand-title">Ravi de vous revoir !</h2>
               <p className="auth2-brand-text">
                 Connectez-vous pour accéder à votre espace de gestion des interventions.
               </p>

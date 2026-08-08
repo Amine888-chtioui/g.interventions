@@ -3,15 +3,15 @@ import { FiGrid, FiTool, FiUsers, FiUser, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
 const ADMIN_NAV = [
-  { to: '/admin', label: 'Tableau de bord', icon: FiGrid },
-  { to: '/admin/interventions', label: 'Interventions', icon: FiTool },
-  { to: '/admin/utilisateurs', label: 'Utilisateurs', icon: FiUsers },
-  { to: '/profile', label: 'Mon profil', icon: FiUser },
+  { to: '/admin', label: 'Tableau de bord', shortLabel: 'Accueil', icon: FiGrid },
+  { to: '/admin/interventions', label: 'Interventions', shortLabel: 'Interventions', icon: FiTool },
+  { to: '/admin/utilisateurs', label: 'Utilisateurs', shortLabel: 'Utilisateurs', icon: FiUsers },
+  { to: '/profile', label: 'Mon profil', shortLabel: 'Profil', icon: FiUser },
 ];
 
 const TECHNICIEN_NAV = [
-  { to: '/technicien', label: 'Mes interventions', icon: FiTool },
-  { to: '/profile', label: 'Mon profil', icon: FiUser },
+  { to: '/technicien', label: 'Mes interventions', shortLabel: 'Accueil', icon: FiTool },
+  { to: '/profile', label: 'Mon profil', shortLabel: 'Profil', icon: FiUser },
 ];
 
 function initials(email) {
@@ -40,7 +40,7 @@ export default function DashboardShell({ children }) {
           <span>Interventions</span>
         </div>
 
-        <nav className="dash-nav">
+        <nav className="dash-nav dash-nav--side">
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -48,7 +48,7 @@ export default function DashboardShell({ children }) {
               end
               className={({ isActive }) => `dash-nav-item${isActive ? ' active' : ''}`}
             >
-              <Icon /> {label}
+              <Icon /> <span>{label}</span>
             </NavLink>
           ))}
         </nav>
@@ -68,6 +68,19 @@ export default function DashboardShell({ children }) {
       </aside>
 
       <div className="dash-main">{children}</div>
+
+      <nav className="dash-nav dash-nav--bottom">
+        {navItems.map(({ to, shortLabel, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end
+            className={({ isActive }) => `dash-nav-item${isActive ? ' active' : ''}`}
+          >
+            <Icon /> <span>{shortLabel || label}</span>
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }

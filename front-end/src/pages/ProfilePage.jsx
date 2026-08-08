@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import DashboardShell from '../components/DashboardShell';
 import NotificationBell from '../components/NotificationBell';
+import Toast from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 import { getProfile, updateProfile, changePassword } from '../api/profileApi';
 
@@ -11,15 +12,14 @@ export default function ProfilePage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState('');
 
   const [profileForm, setProfileForm] = useState({ nom: '', prenom: '', email: '' });
   const [profileError, setProfileError] = useState('');
-  const [profileSuccess, setProfileSuccess] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [passwordForm, setPasswordForm] = useState(EMPTY_PASSWORD_FORM);
   const [passwordError, setPasswordError] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
@@ -50,12 +50,11 @@ export default function ProfilePage() {
   async function handleProfileSubmit(e) {
     e.preventDefault();
     setProfileError('');
-    setProfileSuccess('');
     setSavingProfile(true);
     try {
       const { data } = await updateProfile(profileForm);
       updateIdentity({ email: data.email, token: data.token });
-      setProfileSuccess('Profil mis à jour avec succès.');
+      setToast('Profil mis à jour avec succès.');
     } catch (err) {
       setProfileError(err.response?.data?.message || 'Erreur lors de la mise à jour du profil.');
     } finally {
@@ -66,7 +65,6 @@ export default function ProfilePage() {
   async function handlePasswordSubmit(e) {
     e.preventDefault();
     setPasswordError('');
-    setPasswordSuccess('');
 
     if (passwordForm.newPassword.length < 6) {
       setPasswordError('Le mot de passe doit contenir au moins 6 caractères.');
@@ -80,7 +78,7 @@ export default function ProfilePage() {
     setSavingPassword(true);
     try {
       await changePassword(passwordForm);
-      setPasswordSuccess('Mot de passe modifié avec succès.');
+      setToast('Mot de passe modifié avec succès.');
       setPasswordForm(EMPTY_PASSWORD_FORM);
     } catch (err) {
       setPasswordError(err.response?.data?.message || 'Erreur lors du changement de mot de passe.');
@@ -90,7 +88,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <DashboardShell>
+    <>
+      {toast && <Toast key={toast} message={toast} onDone={() => setToast('')} />}
+      <DashboardShell>
       <div className="dash-topline">
         <div>
           <h2>Mon profil</h2>
@@ -106,7 +106,6 @@ export default function ProfilePage() {
       <div className="dash-card">
         <h3>Informations du profil</h3>
         {profileError && <div className="alert alert-danger py-2">{profileError}</div>}
-        {profileSuccess && <div className="alert alert-success py-2">{profileSuccess}</div>}
         {loading ? (
           <div className="dash-empty">Chargement...</div>
         ) : (
@@ -160,7 +159,6 @@ export default function ProfilePage() {
       <div className="dash-card">
         <h3>Changer le mot de passe</h3>
         {passwordError && <div className="alert alert-danger py-2">{passwordError}</div>}
-        {passwordSuccess && <div className="alert alert-success py-2">{passwordSuccess}</div>}
         <form onSubmit={handlePasswordSubmit}>
           <div className="mb-3">
             <label className="form-label">Mot de passe actuel</label>
@@ -208,6 +206,7 @@ export default function ProfilePage() {
           </div>
         </form>
       </div>
-    </DashboardShell>
+      </DashboardShell>
+    </>
   );
 }

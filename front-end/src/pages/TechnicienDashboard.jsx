@@ -3,6 +3,7 @@ import { FiTool, FiClock, FiCheckCircle } from 'react-icons/fi';
 import DashboardShell from '../components/DashboardShell';
 import NotificationBell from '../components/NotificationBell';
 import PhotoGallery from '../components/PhotoGallery';
+import Toast from '../components/Toast';
 import useReveal from '../hooks/useReveal';
 import { useAuth } from '../context/AuthContext';
 import { STATUTS, statutLabel, statutStyle } from '../constants/statut';
@@ -36,12 +37,12 @@ function KpiCard({ icon: Icon, label, value, tone }) {
 export default function TechnicienDashboard() {
   const { user } = useAuth();
   const rapportCardReveal = useReveal();
-  const photosCardReveal = useReveal();
   const mainCardReveal = useReveal();
 
   const [interventions, setInterventions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
 
   const [rapportIntervention, setRapportIntervention] = useState(null);
@@ -75,6 +76,7 @@ export default function TechnicienDashboard() {
     setUpdatingId(intervention.id);
     try {
       await updateInterventionStatut(intervention.id, statut);
+      setToast('Statut mis à jour avec succès.');
       await fetchInterventions();
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la mise à jour du statut.');
@@ -145,8 +147,10 @@ export default function TechnicienDashboard() {
     try {
       if (rapportMode === 'edit') {
         await updateRapport(rapportIntervention.id, rapportForm);
+        setToast('Rapport modifié avec succès.');
       } else {
         await createRapport(rapportIntervention.id, rapportForm);
+        setToast('Rapport enregistré avec succès.');
       }
       closeRapportForm();
       await fetchInterventions();
@@ -166,7 +170,9 @@ export default function TechnicienDashboard() {
   }, [interventions]);
 
   return (
-    <DashboardShell>
+    <>
+      {toast && <Toast key={toast} message={toast} onDone={() => setToast('')} />}
+      <DashboardShell>
       <div className="dash-topline">
         <div>
           <h2>Bonjour, {user?.email}</h2>
@@ -289,18 +295,6 @@ export default function TechnicienDashboard() {
         </div>
       )}
 
-      {photosIntervention && (
-        <div ref={photosCardReveal.ref} className={`dash-card ${photosCardReveal.className}`}>
-          <h3>
-            Photos — {photosIntervention.titre}
-            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={closePhotosPanel}>
-              Fermer
-            </button>
-          </h3>
-          <PhotoGallery interventionId={photosIntervention.id} canManage />
-        </div>
-      )}
-
       <div ref={mainCardReveal.ref} className={`dash-card ${mainCardReveal.className}`}>
         <h3>Mes interventions</h3>
         {loading ? (
@@ -328,6 +322,7 @@ export default function TechnicienDashboard() {
                     const style = statutStyle(i.statut);
                     const pStyle = prioriteStyle(i.priorite);
                     const isExpanded = viewingDetailsFor?.id === i.id;
+                    const isPhotosOpen = photosIntervention?.id === i.id;
                     return (
                       <Fragment key={i.id}>
                         <tr
@@ -365,7 +360,7 @@ export default function TechnicienDashboard() {
                           <td onClick={(e) => e.stopPropagation()}>
                             {i.statut === 'TERMINEE' ? (
                               <button
-                                className="btn btn-sm btn-outline-primary"
+                                className="btn-tinted btn-tinted-primary"
                                 onClick={() => openRapportForm(i)}
                               >
                                 {i.rapportDisponible ? 'Voir / Modifier' : 'Rédiger le rapport'}
@@ -376,13 +371,20 @@ export default function TechnicienDashboard() {
                           </td>
                           <td onClick={(e) => e.stopPropagation()}>
                             <button
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => openPhotosPanel(i)}
+                              className="btn-tinted btn-tinted-muted"
+                              onClick={() => (isPhotosOpen ? closePhotosPanel() : openPhotosPanel(i))}
                             >
                               Photos{i.nombrePhotos > 0 ? ` (${i.nombrePhotos})` : ''}
                             </button>
                           </td>
                         </tr>
+                        {isPhotosOpen && (
+                          <tr>
+                            <td colSpan={6} className="dash-table-details-cell">
+                              <PhotoGallery interventionId={photosIntervention.id} canManage onClose={closePhotosPanel} />
+                            </td>
+                          </tr>
+                        )}
                         {isExpanded && (
                           <tr>
                             <td colSpan={6} className="dash-table-details-cell">
@@ -423,6 +425,7 @@ export default function TechnicienDashboard() {
           </div>
         )}
       </div>
-    </DashboardShell>
+      </DashboardShell>
+    </>
   );
 }

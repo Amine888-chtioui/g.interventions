@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
 import { forgotPassword, verifyResetCode, resetPassword } from '../api/authApi';
+import Toast from '../components/Toast';
 
 const STEP_INDEX = { email: 0, code: 1, password: 2, done: 3 };
 
@@ -103,8 +104,10 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="auth2-page">
-      <div className="auth2-card shadow-lg">
+    <>
+      {info && <Toast key={info} message={info} onDone={() => setInfo('')} />}
+      <div className="auth2-page">
+        <div className="auth2-card shadow-lg">
         <div className="row g-0">
           <div className="col-lg-7">
             <div className="auth2-form-panel">
@@ -148,11 +151,6 @@ export default function ForgotPasswordPage() {
                   <h2 className="auth2-title mb-1">Vérification</h2>
                   <p className="text-muted mb-4">Saisissez le code à 6 chiffres reçu par email.</p>
 
-                  {info && (
-                    <div className="auth-alert alert alert-success py-2">
-                      <FiCheckCircle /> {info}
-                    </div>
-                  )}
                   {error && (
                     <div className="auth-alert alert alert-danger py-2">
                       <FiAlertCircle /> {error}
@@ -281,7 +279,8 @@ export default function ForgotPasswordPage() {
             <Link to="/login" className="auth2-outline-btn">Connexion</Link>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

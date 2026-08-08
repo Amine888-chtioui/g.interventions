@@ -1,7 +1,9 @@
 import { Fragment, useEffect, useState } from 'react';
+import { FiFileText, FiImage, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import DashboardShell from '../components/DashboardShell';
 import NotificationBell from '../components/NotificationBell';
 import PhotoGallery from '../components/PhotoGallery';
+import Toast from '../components/Toast';
 import { STATUTS, statutLabel, statutStyle } from '../constants/statut';
 import { PRIORITES, prioriteLabel, prioriteStyle } from '../constants/priorite';
 import { getUsers } from '../api/userApi';
@@ -27,6 +29,7 @@ export default function InterventionManagement() {
   const [techniciens, setTechniciens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState('');
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -139,8 +142,10 @@ export default function InterventionManagement() {
       };
       if (editingIntervention) {
         await updateIntervention(editingIntervention.id, payload);
+        setToast('Intervention modifiée avec succès.');
       } else {
         await createIntervention(payload);
+        setToast('Intervention créée avec succès.');
       }
       closeForm();
       await fetchInterventions();
@@ -185,6 +190,7 @@ export default function InterventionManagement() {
     if (!window.confirm(`Supprimer l'intervention "${i.titre}" ?`)) return;
     try {
       await deleteIntervention(i.id);
+      setToast('Intervention supprimée avec succès.');
       await fetchInterventions();
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la suppression.');
@@ -192,7 +198,9 @@ export default function InterventionManagement() {
   }
 
   return (
-    <DashboardShell>
+    <>
+      {toast && <Toast key={toast} message={toast} onDone={() => setToast('')} />}
+      <DashboardShell>
       <div className="dash-topline">
         <div>
           <h2>Gestion des interventions</h2>
@@ -203,10 +211,10 @@ export default function InterventionManagement() {
           </p>
         </div>
         <div className="dash-topline-actions">
-          <NotificationBell />
           <button className="btn btn-primary btn-sm" onClick={openCreateForm}>
             + Nouvelle intervention
           </button>
+          <NotificationBell />
         </div>
       </div>
 
@@ -431,33 +439,51 @@ export default function InterventionManagement() {
                           </span>
                         </td>
                         <td className="text-end" onClick={(e) => e.stopPropagation()}>
-                          {i.rapportDisponible && (
+                          <div className="dash-table-actions">
+                            {i.rapportDisponible && (
+                              <button
+                                type="button"
+                                className="dash-table-action-btn is-primary"
+                                onClick={() => handleViewRapportPdf(i)}
+                                disabled={loadingRapportId === i.id}
+                                aria-label="Voir le rapport"
+                              >
+                                <span className="dash-table-action-tip">
+                                  {loadingRapportId === i.id ? 'Chargement...' : 'Voir le rapport'}
+                                </span>
+                                <FiFileText />
+                              </button>
+                            )}
+                            {i.nombrePhotos > 0 && (
+                              <button
+                                type="button"
+                                className="dash-table-action-btn"
+                                onClick={() => openPhotosView(i)}
+                                aria-label={`Photos (${i.nombrePhotos})`}
+                              >
+                                <span className="dash-table-action-tip">Photos ({i.nombrePhotos})</span>
+                                <FiImage />
+                              </button>
+                            )}
                             <button
-                              className="btn btn-sm btn-outline-primary me-2"
-                              onClick={() => handleViewRapportPdf(i)}
-                              disabled={loadingRapportId === i.id}
+                              type="button"
+                              className="dash-table-action-btn"
+                              onClick={() => openEditForm(i)}
+                              aria-label="Modifier"
                             >
-                              {loadingRapportId === i.id ? 'Chargement...' : 'Voir le rapport'}
+                              <span className="dash-table-action-tip">Modifier</span>
+                              <FiEdit2 />
                             </button>
-                          )}
-                          <button
-                            className="btn btn-sm btn-outline-secondary me-2"
-                            onClick={() => openPhotosView(i)}
-                          >
-                            Photos{i.nombrePhotos > 0 ? ` (${i.nombrePhotos})` : ''}
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-secondary me-2"
-                            onClick={() => openEditForm(i)}
-                          >
-                            Modifier
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDelete(i)}
-                          >
-                            Supprimer
-                          </button>
+                            <button
+                              type="button"
+                              className="dash-table-action-btn is-danger"
+                              onClick={() => handleDelete(i)}
+                              aria-label="Supprimer"
+                            >
+                              <span className="dash-table-action-tip">Supprimer</span>
+                              <FiTrash2 />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       {isExpanded && (
@@ -506,6 +532,7 @@ export default function InterventionManagement() {
           </div>
         )}
       </div>
-    </DashboardShell>
+      </DashboardShell>
+    </>
   );
 }

@@ -13,6 +13,7 @@ body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
   background-color: var(--brand-surface);
+  overflow-x: hidden;
 }
 
 /* ---------- Apparition au scroll (cartes / sections de dashboard) ---------- */
@@ -235,6 +236,17 @@ body {
   }
 }
 
+@media (max-width: 420px) {
+  .authp-form,
+  .auth2-form-panel {
+    padding: 2rem 1.25rem;
+  }
+
+  .auth2-title {
+    margin-bottom: 1.25rem;
+  }
+}
+
 /* ---------- Sliding login / register panel (AuthPage) ---------- */
 
 .authp-card {
@@ -421,6 +433,48 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ---------- Toast notification (Facebook/Instagram style, auto-dismiss) ---------- */
+
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1.4rem;
+  max-width: min(90vw, 420px);
+  border-radius: 999px;
+  background: #1c1e21;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.3;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  animation: toastLife 5s ease forwards;
+}
+
+.toast-notification-icon {
+  flex-shrink: 0;
+  font-size: 1.05rem;
+  color: #45d483;
+}
+
+@keyframes toastLife {
+  0% { opacity: 0; transform: translate(-50%, -16px) scale(0.95); }
+  8% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  88% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -10px) scale(0.97); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-notification {
+    animation: none;
+  }
+}
+
 .btn-spinner {
   width: 1rem;
   height: 1rem;
@@ -596,6 +650,54 @@ body {
   color: var(--accent);
 }
 
+.dash-nav--bottom {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .dash-nav--bottom {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: stretch;
+    gap: 0.2rem;
+    background: var(--card);
+    border-top: 1px solid var(--line);
+    padding: 0.3rem 0.3rem calc(0.3rem + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 20px -12px rgba(20, 30, 60, 0.18);
+  }
+
+  .dash-nav--bottom .dash-nav-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.3rem 0.15rem;
+    border-radius: 0.6rem;
+    font-size: 1.3rem;
+    text-align: center;
+  }
+
+  .dash-nav--bottom .dash-nav-item.active {
+    background: transparent;
+  }
+
+  .dash-nav--bottom .dash-nav-item span {
+    font-size: 0.64rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+}
+
 .dash-side-foot {
   margin-top: auto;
   border-top: 1px solid var(--line);
@@ -691,7 +793,9 @@ body {
 
 .dash-topline-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.6rem;
 }
 
@@ -743,7 +847,7 @@ body {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 320px;
+  width: min(320px, calc(100vw - 2rem));
   max-height: 420px;
   display: flex;
   flex-direction: column;
@@ -1081,6 +1185,15 @@ body {
   text-align: right;
 }
 
+.table-responsive {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.table-responsive::-webkit-scrollbar {
+  display: none;
+}
+
 .dash-table {
   width: 100%;
   border-collapse: collapse;
@@ -1151,6 +1264,114 @@ body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+}
+
+/* ---------- Tinted action buttons (Rapport / Photos) ---------- */
+
+.btn-tinted {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.38rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btn-tinted-primary {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.btn-tinted-primary:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-tinted-muted {
+  background: var(--muted-tone-soft);
+  color: var(--muted-tone);
+}
+
+.btn-tinted-muted:hover {
+  background: var(--muted-tone);
+  color: #fff;
+}
+
+/* ---------- Table row action icon buttons (with hover tooltip) ---------- */
+
+.dash-table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dash-table-action-btn {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink2);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.dash-table-action-btn:hover {
+  background: var(--muted-tone-soft);
+  color: var(--ink);
+}
+
+.dash-table-action-btn.is-primary {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+}
+
+.dash-table-action-btn.is-primary:hover {
+  background: var(--accent-soft);
+}
+
+.dash-table-action-btn.is-danger:hover {
+  color: var(--crit);
+  border-color: var(--crit);
+  background: var(--crit-soft);
+}
+
+.dash-table-action-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+.dash-table-action-tip {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) translateY(3px);
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.3rem 0.55rem;
+  border-radius: 5px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 3;
+}
+
+.dash-table-action-btn:hover .dash-table-action-tip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .dash-photo-upload {
@@ -1272,13 +1493,13 @@ body {
     width: 100%;
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
     gap: 1rem;
     padding: 0.85rem 1rem;
   }
 
-  .dash-nav {
-    flex-direction: row;
-    overflow-x: auto;
+  .dash-side .dash-nav--side {
+    display: none;
   }
 
   .dash-side-foot {
@@ -1300,6 +1521,7 @@ body {
 
   .dash-main {
     padding: 1.25rem 1.1rem 2rem;
+    padding-bottom: calc(4.9rem + env(safe-area-inset-bottom));
   }
 
   .dash-kpis,
