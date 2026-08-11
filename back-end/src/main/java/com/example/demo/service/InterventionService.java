@@ -5,17 +5,14 @@ import com.example.demo.entity.*;
 import com.example.demo.repository.InterventionRepository;
 import com.example.demo.repository.InterventionSpecifications;
 import com.example.demo.repository.PhotoInterventionRepository;
-import com.example.demo.repository.RapportInterventionRepository;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +21,6 @@ public class InterventionService {
     private final InterventionRepository interventionRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    private final RapportInterventionRepository rapportInterventionRepository;
     private final PhotoInterventionRepository photoInterventionRepository;
 
     public List<InterventionResponse> getAllInterventions(String q, String statut, String priorite) {
@@ -45,9 +41,7 @@ public class InterventionService {
 
     public InterventionResponse getIntervention(Long id) {
         Intervention intervention = findById(id);
-        return toResponse(intervention,
-                rapportInterventionRepository.existsByInterventionId(intervention.getId()),
-                (int) photoInterventionRepository.countByInterventionId(intervention.getId()));
+        return toResponse(intervention, (int) photoInterventionRepository.countByInterventionId(intervention.getId()));
     }
 
     public InterventionResponse createIntervention(InterventionRequest request) {
@@ -68,7 +62,7 @@ public class InterventionService {
             notificationService.notifyAssignation(technicien, intervention.getId(), intervention.getTitre());
         }
 
-        return toResponse(intervention, false, 0);
+        return toResponse(intervention, 0);
     }
 
     public InterventionResponse updateIntervention(Long id, InterventionRequest request) {
@@ -93,9 +87,7 @@ public class InterventionService {
             notificationService.notifyAssignation(technicien, intervention.getId(), intervention.getTitre());
         }
 
-        return toResponse(intervention,
-                rapportInterventionRepository.existsByInterventionId(intervention.getId()),
-                (int) photoInterventionRepository.countByInterventionId(intervention.getId()));
+        return toResponse(intervention, (int) photoInterventionRepository.countByInterventionId(intervention.getId()));
     }
 
     public InterventionResponse updateStatut(Long id, String statut, String currentUserEmail) {
@@ -124,9 +116,7 @@ public class InterventionService {
             notificationService.notifyTerminee(admins, intervention.getId(), intervention.getTitre(), technicienNomComplet);
         }
 
-        return toResponse(intervention,
-                rapportInterventionRepository.existsByInterventionId(intervention.getId()),
-                (int) photoInterventionRepository.countByInterventionId(intervention.getId()));
+        return toResponse(intervention, (int) photoInterventionRepository.countByInterventionId(intervention.getId()));
     }
 
     public void deleteIntervention(Long id) {
@@ -182,7 +172,6 @@ public class InterventionService {
             return List.of();
         }
         List<Long> ids = interventions.stream().map(Intervention::getId).toList();
-        Set<Long> idsWithRapport = new HashSet<>(rapportInterventionRepository.findInterventionIdsWithRapport(ids));
 
         Map<Long, Long> photoCounts = new HashMap<>();
         for (PhotoInterventionRepository.InterventionPhotoCount count : photoInterventionRepository.countByInterventionIds(ids)) {
@@ -190,11 +179,11 @@ public class InterventionService {
         }
 
         return interventions.stream()
-                .map(i -> toResponse(i, idsWithRapport.contains(i.getId()), photoCounts.getOrDefault(i.getId(), 0L).intValue()))
+                .map(i -> toResponse(i, photoCounts.getOrDefault(i.getId(), 0L).intValue()))
                 .toList();
     }
 
-    private InterventionResponse toResponse(Intervention intervention, boolean rapportDisponible, int nombrePhotos) {
+    private InterventionResponse toResponse(Intervention intervention, int nombrePhotos) {
         User technicien = intervention.getTechnicien();
         return new InterventionResponse(
                 intervention.getId(),
@@ -207,7 +196,7 @@ public class InterventionService {
                 technicien != null ? technicien.getId() : null,
                 technicien != null ? technicien.getNom() : null,
                 technicien != null ? technicien.getPrenom() : null,
-                rapportDisponible,
+                intervention.isRapportDisponible(),
                 nombrePhotos
         );
     }

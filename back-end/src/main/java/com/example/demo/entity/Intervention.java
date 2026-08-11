@@ -43,6 +43,9 @@ public class Intervention {
     @JoinColumn(name = "technicien_id")
     private User technicien;
 
+    @Column(nullable = false)
+    private boolean rapportDisponible;
+
     @PrePersist
     protected void onCreate() {
         this.dateCreation = LocalDateTime.now();

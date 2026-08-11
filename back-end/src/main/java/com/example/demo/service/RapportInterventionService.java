@@ -62,7 +62,12 @@ public class RapportInterventionService {
                 .observations(request.getObservations())
                 .build();
 
-        return toResponse(rapportInterventionRepository.save(rapport));
+        RapportIntervention saved = rapportInterventionRepository.save(rapport);
+
+        intervention.setRapportDisponible(true);
+        interventionRepository.save(intervention);
+
+        return toResponse(saved);
     }
 
     public RapportInterventionResponse updateRapport(Long interventionId, RapportInterventionRequest request, String currentUserEmail) {
