@@ -50,7 +50,7 @@ export default function PhotoGallery({ interventionId, canManage = false, onClos
     );
     setPreviews((prev) => {
       Object.values(prev).forEach((url) => url && URL.revokeObjectURL(url));
-      return Object.fromEntries(entries);
+      return Object.fromEntries(entries);//kathawl liya list 3la xkal object bax n9dar nkhdam bi previews[photo.id] fi url dyal <img>
     });
   }
 

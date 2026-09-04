@@ -9,6 +9,7 @@ import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -81,6 +82,12 @@ public class NotificationService {
         List<Notification> unread = notificationRepository.findByDestinataireIdAndLueFalse(user.getId());
         unread.forEach(n -> n.setLue(true));
         notificationRepository.saveAll(unread);
+    }
+
+    @Transactional
+    public void deleteAllForUser(String email) {
+        User user = getUser(email);
+        notificationRepository.deleteByDestinataireId(user.getId());
     }
 
     public void notifyAssignation(User technicien, Long interventionId, String titre) {

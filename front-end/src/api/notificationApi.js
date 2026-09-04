@@ -8,6 +8,8 @@ export const markNotificationRead = (id) => axiosInstance.put(`/api/notification
 
 export const markAllNotificationsRead = () => axiosInstance.put('/api/notifications/lues');
 
+export const deleteAllNotifications = () => axiosInstance.delete('/api/notifications');
+
 /**
  * Ouvre un flux SSE authentifié (fetch + lecture manuelle) vers /api/notifications/stream.
  * EventSource natif ne permet pas d'envoyer l'en-tête Authorization, on lit donc le flux à la main.

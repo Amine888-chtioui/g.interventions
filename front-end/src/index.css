@@ -871,6 +871,12 @@ body {
   flex-shrink: 0;
 }
 
+.dash-notif-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
 .dash-notif-markall {
   border: none;
   background: none;
@@ -883,6 +889,22 @@ body {
 
 .dash-notif-markall:hover {
   text-decoration: underline;
+}
+
+.dash-notif-clearall {
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  color: var(--ink2);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.dash-notif-clearall:hover {
+  color: var(--crit);
 }
 
 .dash-notif-empty {

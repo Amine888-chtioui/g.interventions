@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { FiBell, FiBellOff, FiTool, FiCheckCircle } from 'react-icons/fi';
+import { FiBell, FiBellOff, FiTool, FiCheckCircle, FiTrash2 } from 'react-icons/fi';
 import {
   getNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  deleteAllNotifications,
   subscribeToNotifications,
 } from '../api/notificationApi';
 
@@ -74,6 +75,20 @@ export default function NotificationBell() {
     }
   }
 
+  async function handleDeleteAll() {
+    if (notifications.length === 0) return;
+    if (!window.confirm('Supprimer toutes les notifications ?')) return;
+
+    const previous = notifications;
+    setNotifications([]);
+    try {
+      await deleteAllNotifications();
+    } catch {
+      // la suppression a échoué côté serveur : on restaure la liste locale
+      setNotifications(previous);
+    }
+  }
+
   return (
     <div className="dash-notif" ref={wrapRef}>
       <button
@@ -90,11 +105,23 @@ export default function NotificationBell() {
         <div className="dash-notif-panel">
           <div className="dash-notif-header">
             <span>Notifications</span>
-            {unreadCount > 0 && (
-              <button className="dash-notif-markall" onClick={handleMarkAll}>
-                Tout marquer comme lu
-              </button>
-            )}
+            <div className="dash-notif-header-actions">
+              {unreadCount > 0 && (
+                <button className="dash-notif-markall" onClick={handleMarkAll}>
+                  Tout marquer comme lu
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  className="dash-notif-clearall"
+                  onClick={handleDeleteAll}
+                  aria-label="Tout supprimer"
+                  title="Tout supprimer"
+                >
+                  <FiTrash2 />
+                </button>
+              )}
+            </div>
           </div>
 
           {notifications.length === 0 ? (

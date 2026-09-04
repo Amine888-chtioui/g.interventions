@@ -9,4 +9,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     List<Notification> findTop30ByDestinataireIdOrderByDateCreationDesc(Long destinataireId);
 
     List<Notification> findByDestinataireIdAndLueFalse(Long destinataireId);
+
+    void deleteByDestinataireId(Long destinataireId);
 }
